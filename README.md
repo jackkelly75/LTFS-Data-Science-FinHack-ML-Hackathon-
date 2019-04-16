@@ -10,3 +10,5 @@ Info provided includes:
 * Loanee Information (Demographic data like age, income, Identity proof etc.)
 * Loan Information (Disbursal details, amount, EMI, loan to value ratio etc.)
 * Bureau data & history (Bureau score, number of active accounts, the status of other loans, credit history etc.)
+
+R script "1. Prepare the data" sorts the data so it can be analysed. Useless features (eg. ID number) are removed so they do not effect the prediction model. All catagorical variables are numeric.
