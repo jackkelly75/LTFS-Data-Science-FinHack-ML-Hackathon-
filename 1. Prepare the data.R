@@ -13,11 +13,13 @@ require(data.table)
 require(bit64)
 require(caret)
 require(gbm)
+library(xgboost)
 
 ##########
 #set directory to that containing files
 ##########
 setwd("C:/Users/Jack/Desktop/comp")
+#setwd("/media/jack/SP PHD U3/comp")
 
 ##########
 #load training and testing data
@@ -164,40 +166,11 @@ Xtest$CREDIT.HISTORY.LENGTH <- year + mon
 
 
 
-#############################
-#remove what i condider redundant information
-#############################
-#after running model its clear that MobileNo_Avl_Flag has no variation and is 1 for all
-Xtest$MobileNo_Avl_Flag <- NULL
-loan$MobileNo_Avl_Flag <- NULL
-
-
-loan$UniqueID <- NULL
-Xtest$UniqueID <- NULL
-loan$Current_pincode <- NULL
-Xtest$Current_pincode <- NULL
-loan$Employee_code_ID <- NULL
-Xtest$Employee_code_ID <- NULL
-loan$Aadhar_flag <- NULL
-Xtest$Aadhar_flag <- NULL
-loan$PAN_flag <- NULL
-Xtest$PAN_flag <- NULL
-loan$VoterID_flag <- NULL
-Xtest$VoterID_flag <- NULL
-loan$Driving_flag <- NULL
-Xtest$Driving_flag <- NULL
-loan$Passport_flag <- NULL
-Xtest$Passport_flag <- NULL
-loan$PERFORM_CNS.SCORE.DESCRIPTION <- NULL
-Xtest$PERFORM_CNS.SCORE.DESCRIPTION <- NULL
-
-
 #############
 #convert it to the numeric version
 #############
 Xtest <- apply(Xtest, 2, function(x) as.numeric(x))
 loan <- apply(loan, 2, function(x) as.numeric(x))
-
 
 
 
@@ -222,6 +195,130 @@ med <- apply(loan, 2, median, na.rm=TRUE)
 loan <- Impute(loan, med)
 Xtest <- Impute(Xtest, med[1:dim(Xtest)[2]])
 
+
+
+
+###################################
+#remove any variables with low variance
+###################################
+
+#nearZeroVar(loan, names= T)
+
+#"MobileNo_Avl_Flag"
+#"Driving_flag"
+#"Passport_flag"
+#"SEC.NO.OF.ACCTS"
+#"SEC.ACTIVE.ACCTS"
+#"SEC.OVERDUE.ACCTS"    
+#"SEC.CURRENT.BALANCE"
+#"SEC.SANCTIONED.AMOUNT"
+#"SEC.DISBURSED.AMOUNT"
+#"SEC.INSTAL.AMT"
+#"AVERAGE.ACCT.AGE"
+#"CREDIT.HISTORY.LENGTH"
+
+
+#nearZeroVar(loan, names= T, freqCut = 2000)
+
+#"MobileNo_Avl_Flag"
+#"SEC.CURRENT.BALANCE"
+#"SEC.SANCTIONED.AMOUNT"
+#"SEC.DISBURSED.AMOUNT"
+#"SEC.INSTAL.AMT"
+
+
+#############################
+#remove what i condider redundant information
+#############################
+#very very low variance
+Xtest$MobileNo_Avl_Flag <- NULL
+loan$MobileNo_Avl_Flag <- NULL
+Xtest$SEC.CURRENT.BALANCE <- NULL
+loan$SEC.CURRENT.BALANCE <- NULL
+Xtest$SEC.SANCTIONED.AMOUNT <- NULL
+loan$SEC.SANCTIONED.AMOUNT <- NULL
+Xtest$SEC.INSTAL.AMT <- NULL
+loan$SEC.INSTAL.AMT <- NULL
+
+
+#not so low but low variance
+
+Xtest$Driving_flag <- NULL
+loan$Driving_flag <- NULL
+Xtest$Passport_flag <- NULL
+loan$Passport_flag <- NULL
+
+Xtest$SEC.NO.OF.ACCTS <- NULL
+loan$SEC.NO.OF.ACCTS <- NULL
+Xtest$SEC.ACTIVE.ACCTS <- NULL
+loan$SEC.ACTIVE.ACCTS <- NULL
+Xtest$SEC.OVERDUE.ACCTS <- NULL
+loan$SEC.OVERDUE.ACCTS <- NULL
+Xtest$SEC.DISBURSED.AMOUNT <- NULL
+loan$SEC.DISBURSED.AMOUNT <- NULL
+Xtest$AVERAGE.ACCT.AGE <- NULL
+loan$AVERAGE.ACCT.AGE <- NULL
+Xtest$CREDIT.HISTORY.LENGTH <- NULL
+loan$CREDIT.HISTORY.LENGTH <- NULL
+
+#might be important, however is so many options that they can't be one hot encoded by my laptop
+loan$supplier_id <- NULL
+Xtest$supplier_id <- NULL
+loan$Employee_code_ID <- NULL ##employee Id may be a factor, but there are a large amount of them
+Xtest$Employee_code_ID <- NULL
+
+
+##########################
+## redundant by what they are
+#########################
+loan$UniqueID <- NULL
+Xtest$UniqueID <- NULL
+loan$PERFORM_CNS.SCORE.DESCRIPTION <- NULL
+Xtest$PERFORM_CNS.SCORE.DESCRIPTION <- NULL
+
+
+
+############################
+## one hot encoding catagorical variables
+############################
+
+######################
+## manufactureing ID
+######################
+##only use the IDs that are simliar between datasets
+x <- intersect(unique(loan$manufacturer_id), unique(Xtest$manufacturer_id))
+
+for(unique_value in x){
+	loan[paste("manufacturer_id", unique_value, sep = ".")] <- ifelse(loan$manufacturer_id == unique_value, 1, 0)
+}
+for(unique_value in x){
+	Xtest[paste("manufacturer_id", unique_value, sep = ".")] <- ifelse(Xtest$manufacturer_id == unique_value, 1, 0)
+}
+loan$manufacturer_id <- NULL
+Xtest$manufacturer_id <- NULL
+
+
+######################
+## same with branch_id
+######################
+##only use the IDs that are simliar between datasets
+x <- intersect(unique(loan$branch_id), unique(Xtest$branch_id))
+
+for(unique_value in unique(loan$branch_id)){
+	loan[paste("branch_id", unique_value, sep = ".")] <- ifelse(loan$branch_id == unique_value, 1, 0)
+}
+for(unique_value in unique(Xtest$branch_id)){
+	Xtest[paste("branch_id", unique_value, sep = ".")] <- ifelse(Xtest$branch_id == unique_value, 1, 0)
+}
+loan$branch_id <- NULL
+Xtest$branch_id <- NULL
+
+
+
+
+##############################
+##save data                 ##
+##############################
 
 save(loan, file = "loan.Rdata")
 save(Xtest, file = "Xtest.Rdata")
